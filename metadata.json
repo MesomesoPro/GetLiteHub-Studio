@@ -1,0 +1,7 @@
+{
+  "name": "Copy of GetLiteHub - Research & Innovation Forum",
+  "description": "A collaborative platform powered by AI to connect researchers, experts, and students to solve real-world problems with user-centered technology.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

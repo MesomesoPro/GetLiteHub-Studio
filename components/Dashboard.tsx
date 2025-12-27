@@ -25,6 +25,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout, branding, onUpdateBrand
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const [isDraggingLogo, setIsDraggingLogo] = useState(false);
+  const [isDraggingFavicon, setIsDraggingFavicon] = useState(false);
   const [logoError, setLogoError] = useState(false);
   
   const [editBranding, setEditBranding] = useState<BrandingConfig>(branding);
@@ -58,6 +59,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout, branding, onUpdateBrand
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const faviconInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -77,11 +79,26 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout, branding, onUpdateBrand
     }
   };
 
+  const handleFaviconFile = (file: File) => {
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => setEditBranding(prev => ({ ...prev, favicon: reader.result as string }));
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleDropLogo = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDraggingLogo(false);
     const file = e.dataTransfer.files?.[0];
     if (file) handleLogoFile(file);
+  };
+
+  const handleDropFavicon = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingFavicon(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFaviconFile(file);
   };
 
   const handleSaveSettings = async () => {
@@ -162,9 +179,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout, branding, onUpdateBrand
                   />
                 </div>
 
-                {/* Upload Branding Asset with Drag and Drop */}
+                {/* Workspace Logo */}
                 <div className="space-y-3">
-                  <label className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 block ml-1">Upload Branding Asset</label>
+                  <label className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 block ml-1">Main Workspace Logo</label>
                   <div className="flex items-center gap-6">
                     <div 
                       className={`w-24 h-24 rounded-full bg-white border border-slate-100 flex items-center justify-center overflow-hidden shadow-md transition-all relative ${isDraggingLogo ? 'ring-4 ring-blue-500/20 border-blue-400' : ''}`}
@@ -200,6 +217,53 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout, branding, onUpdateBrand
                         onChange={(e) => {
                           const file = e.target.files?.[0];
                           if (file) handleLogoFile(file);
+                        }} 
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Workspace Favicon */}
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 block ml-1">Browser Tab Favicon</label>
+                  <div className="flex items-center gap-6">
+                    <div 
+                      className={`w-16 h-16 rounded-2xl bg-white border border-slate-100 flex items-center justify-center overflow-hidden shadow-sm transition-all relative ${isDraggingFavicon ? 'ring-4 ring-blue-500/20 border-blue-400' : ''}`}
+                      onDragOver={(e) => { e.preventDefault(); setIsDraggingFavicon(true); }}
+                      onDragLeave={() => setIsDraggingFavicon(false)}
+                      onDrop={handleDropFavicon}
+                    >
+                      {editBranding.favicon ? (
+                        <img src={editBranding.favicon} alt="Favicon" className="w-full h-full object-contain p-2" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-slate-50">
+                           <span className="text-[8px] font-black text-slate-300">ICON</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <button 
+                        onClick={() => faviconInputRef.current?.click()}
+                        className="bg-[#f1f5f9] text-slate-700 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all"
+                      >
+                        Change Favicon
+                      </button>
+                      {editBranding.favicon && (
+                        <button 
+                          onClick={() => setEditBranding(prev => ({ ...prev, favicon: null }))}
+                          className="text-red-500 text-[9px] font-black uppercase tracking-widest hover:underline text-left pl-1"
+                        >
+                          Reset to Default
+                        </button>
+                      )}
+                      <input 
+                        type="file" 
+                        ref={faviconInputRef} 
+                        className="hidden" 
+                        accept="image/x-icon,image/png,image/svg+xml" 
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleFaviconFile(file);
                         }} 
                       />
                     </div>

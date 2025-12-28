@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import InspireSlider from './InspireSlider';
 import { BrandingConfig } from '../App';
 
@@ -8,12 +8,24 @@ interface HeroProps {
 }
 
 const Hero: React.FC<HeroProps> = ({ branding }) => {
+  const [logoError, setLogoError] = useState(false);
   const getLightColor = (hex: string) => `${hex}15`;
 
   const researchFields = [
     'Artificial Intelligence', 'IoT Systems', 'Sustainable Agriculture', 
     'HealthTech', 'Renewable Energy', 'Blockchain', 'UX Research'
   ];
+
+  const renderFallbackAvatar = (name: string, color: string) => (
+    <div 
+      className="w-full h-full flex items-center justify-center font-black text-white text-4xl shadow-inner"
+      style={{ 
+        background: `linear-gradient(135deg, ${color} 0%, ${color}dd 100%)` 
+      }}
+    >
+      {name.charAt(0).toUpperCase()}
+    </div>
+  );
 
   return (
     <div className="relative bg-white overflow-hidden min-h-screen flex flex-col">
@@ -90,8 +102,16 @@ const Hero: React.FC<HeroProps> = ({ branding }) => {
             <div className="w-full aspect-square rounded-[4rem] bg-gradient-to-br from-slate-50 to-white border border-slate-100 shadow-inner flex items-center justify-center group overflow-hidden">
                <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] -z-10"></div>
                <div className="text-center p-12 transition-transform duration-700 group-hover:scale-105">
-                 <div className="w-24 h-24 rounded-[2rem] mx-auto mb-8 shadow-2xl flex items-center justify-center text-white text-4xl font-black" style={{ backgroundColor: branding.color }}>
-                   {branding.name.charAt(0)}
+                 <div className="w-24 h-24 rounded-[2rem] mx-auto mb-8 shadow-2xl flex items-center justify-center overflow-hidden bg-white border border-slate-50">
+                    {branding.logo && !logoError ? (
+                      <img 
+                        src={branding.logo} 
+                        className="w-full h-full object-contain p-4" 
+                        onError={() => setLogoError(true)} 
+                      />
+                    ) : (
+                      renderFallbackAvatar(branding.name, branding.color)
+                    )}
                  </div>
                  <h3 className="text-2xl font-black text-slate-900 mb-2">Research. Forge.</h3>
                  <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">The GetLiteHub Standard</p>

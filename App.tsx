@@ -20,15 +20,38 @@ export interface BrandingConfig {
   color: string;
 }
 
-const STORAGE_KEY = 'getlitehub_branding_v5'; // Bumped version for fresh state
+export interface User {
+  username: string;
+  email: string;
+  fullName: string;
+  password?: string;
+  avatar?: string;
+}
+
+const STORAGE_KEY = 'getlitehub_branding_v6';
+const SESSION_KEY = 'getlitehub_session_v1';
+const USER_DATA_KEY = 'getlitehub_current_user_v1';
 
 const App: React.FC = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    const saved = localStorage.getItem(USER_DATA_KEY);
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    return localStorage.getItem(SESSION_KEY) === 'true';
+  });
+
+  const [view, setView] = useState<'landing' | 'dashboard'>(() => {
+    return localStorage.getItem(SESSION_KEY) === 'true' ? 'dashboard' : 'landing';
+  });
   
+  const LOCAL_LOGO_PATH = './logo.png';
+
   const DEFAULT_BRANDING: BrandingConfig = {
     name: 'GetLiteHub',
-    logo: 'logo.png',
-    favicon: null,
+    logo: LOCAL_LOGO_PATH,
+    favicon: LOCAL_LOGO_PATH,
     color: '#0052FF'
   };
 
@@ -37,11 +60,13 @@ const App: React.FC = () => {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Ensure we merge defaults but prioritize any non-null saved values
+        const isCustomUpload = parsed.logo && parsed.logo.startsWith('data:');
+        
         return { 
           ...DEFAULT_BRANDING, 
           ...parsed,
-          logo: parsed.logo !== undefined ? parsed.logo : DEFAULT_BRANDING.logo
+          logo: isCustomUpload ? parsed.logo : LOCAL_LOGO_PATH,
+          favicon: (parsed.favicon && parsed.favicon.startsWith('data:')) ? parsed.favicon : LOCAL_LOGO_PATH
         };
       } catch (e) {
         console.error("Failed to parse saved branding", e);
@@ -57,15 +82,14 @@ const App: React.FC = () => {
   useEffect(() => {
     document.title = `${branding.name} | Research & Innovation Forum`;
 
-    if (branding.favicon) {
-      let link: HTMLLinkElement | null = document.querySelector("link[rel*='icon']");
-      if (!link) {
-        link = document.createElement('link');
-        link.rel = 'icon';
-        document.getElementsByTagName('head')[0].appendChild(link);
-      }
-      link.href = branding.favicon;
+    const faviconPath = branding.favicon || branding.logo || LOCAL_LOGO_PATH;
+    let link: HTMLLinkElement | null = document.querySelector("link[rel*='icon']");
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      document.getElementsByTagName('head')[0].appendChild(link);
     }
+    link.href = faviconPath;
 
     let metaTheme: HTMLMetaElement | null = document.querySelector('meta[name="theme-color"]');
     if (!metaTheme) {
@@ -76,11 +100,10 @@ const App: React.FC = () => {
     metaTheme.content = branding.color;
 
     document.documentElement.style.setProperty('--brand-color', branding.color);
-  }, [branding.name, branding.favicon, branding.color]);
+  }, [branding.name, branding.favicon, branding.logo, branding.color]);
 
-  // Scroll Reveal Logic
   useEffect(() => {
-    if (isLoggedIn) return;
+    if (view === 'dashboard') return;
 
     const revealCallback = (entries: IntersectionObserverEntry[]) => {
       entries.forEach((entry) => {
@@ -100,21 +123,49 @@ const App: React.FC = () => {
     elements.forEach((el) => observer.observe(el));
 
     return () => observer.disconnect();
-  }, [isLoggedIn]);
+  }, [view]);
 
-  const handleLogin = () => {
+  const handleLogin = (user: User, remember: boolean) => {
     setIsLoggedIn(true);
+    setCurrentUser(user);
+    setView('dashboard');
+    localStorage.setItem(USER_DATA_KEY, JSON.stringify(user));
+    if (remember) {
+      localStorage.setItem(SESSION_KEY, 'true');
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleLogout = () => {
     setIsLoggedIn(false);
+    setCurrentUser(null);
+    setView('landing');
+    localStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem(USER_DATA_KEY);
   };
 
-  if (isLoggedIn) {
+  const handleGoToHome = () => {
+    setView('landing');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleGoToDashboard = () => {
+    setView('dashboard');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleUpdateUser = (updatedUser: User) => {
+    setCurrentUser(updatedUser);
+    localStorage.setItem(USER_DATA_KEY, JSON.stringify(updatedUser));
+  };
+
+  if (isLoggedIn && view === 'dashboard') {
     return (
       <Dashboard 
+        user={currentUser}
+        onUpdateUser={handleUpdateUser}
         onLogout={handleLogout} 
+        onGoToHome={handleGoToHome}
         branding={branding}
         onUpdateBranding={setBranding}
         defaultBranding={DEFAULT_BRANDING}
@@ -124,7 +175,12 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col selection:bg-blue-100 selection:text-blue-900 bg-white">
-      <Navbar onLogin={handleLogin} branding={branding} />
+      <Navbar 
+        onLogin={handleLogin} 
+        onGoToDashboard={handleGoToDashboard}
+        isLoggedIn={isLoggedIn}
+        branding={branding} 
+      />
       <main className="flex-grow">
         <section id="hero">
           <Hero branding={branding} />
